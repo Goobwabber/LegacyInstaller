@@ -1,8 +1,9 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using System;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -15,6 +16,7 @@ namespace LegacyInstaller
             .OpenSubKey(@"SOFTWARE\Valve\Steam\ActiveProcess").GetValue("ActiveUser");
         public bool HasExited => Process == null || Process.HasExited;
         public bool IsPatched => Process != null && Process.Id == _patchedProcessId;
+        public bool ShortcutsChanged => Process != null && Process.Id == _shortcutsChangedProcessId;
 
         public string InstallDir { get; private set; }
         public string ContentDir => Path.Combine(InstallDir, "steamapps", "content");
@@ -25,6 +27,7 @@ namespace LegacyInstaller
         private const string SteamDepotId = "620981";
 
         private int _patchedProcessId = 0;
+        private int _shortcutsChangedProcessId = 0;
         private FileSystemWatcher _contentDirWatcher;
 
         public SteamProcess(string installDir)
@@ -115,6 +118,26 @@ namespace LegacyInstaller
             newShortcuts = newShortcuts.Append((byte)0x08).Append((byte)0x08); // add file end
 
             File.WriteAllBytes(ShortcutsFile, newShortcuts.ToArray());
+
+            _shortcutsChangedProcessId = Process.Id;
+        }
+
+        public void DeleteSteamShortcut(string appName)
+        {
+            if (CurrentUserId == 0)
+                throw new NotLoggedInException();
+
+            if (!File.Exists(ShortcutsFile))
+                return;
+
+            var shortcuts = File.ReadAllText(ShortcutsFile, Encoding.ASCII);
+            if (!shortcuts.Contains(appName))
+                return;
+
+            var newShortcuts = Regex.Replace(shortcuts, @"\x00[\d]\x00(?!.*?\x00[\d]\x00.*?\x01AppName\x00" + appName + @"\x00).*?\x08\x08", "");
+            File.WriteAllText(ShortcutsFile, newShortcuts, Encoding.ASCII);
+
+            _shortcutsChangedProcessId = Process.Id;
         }
 
         public int GetSteamShortcutCount()

@@ -1,4 +1,4 @@
-﻿using Microsoft.Win32;
+using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -18,7 +18,7 @@ namespace LegacyInstaller
         public Version SelectedVersion { get; private set; }
 
         public string BSInstallDir { get; private set; }
-        public string SelectedVersionInstallDir => BSInstallDir != null && SelectedVersion != null ? Path.Combine($"{BSInstallDir} {SelectedVersion.BSVersion}") : null;
+        public string SelectedVersionInstallDir => BSInstallDir != null && SelectedVersion != null ? $"{BSInstallDir} {SelectedVersion.BSVersion}" : null;
 
         private SteamProcess _steamProcess = null;
 
@@ -62,7 +62,7 @@ namespace LegacyInstaller
                 }
             } catch { }
 
-            installButton.Enabled = false;
+            _ = RefreshInternal();
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -84,16 +84,17 @@ namespace LegacyInstaller
             {
                 if (_steamProcess != null && BSInstallDir != null)
                 {
+                    installButton.Enabled = true;
+
                     if (SelectedVersionInstallDir != null && Directory.Exists(SelectedVersionInstallDir))
                     {
                         var steamShortcutExists = _steamProcess.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
-                        installButton.Text = steamShortcutExists ? "Install" : "Add To Steam";
+                        installButton.Text = steamShortcutExists ? "Uninstall" : "Add To Steam";
                         installStateLabel.Text = steamShortcutExists ? "Already Installed" : "(Already Installed)";
-                        installButton.Enabled = !steamShortcutExists;
+
                     }
                     else
                     {
-                        installButton.Enabled = true;
                         installButton.Text = "Install";
                         installStateLabel.Text = "";
                     }
@@ -101,6 +102,63 @@ namespace LegacyInstaller
                 else
                     installButton.Enabled = false;
             }
+        }
+
+        private bool _isRefreshing;
+        private async Task RefreshInternal()
+        {
+            if (_isRefreshing == true)
+                return;
+
+            _isRefreshing = true;
+
+            var labelText = "";
+            if (_steamProcess == null)
+                labelText += "Please set your Steam install directory.";
+            if (BSInstallDir == null)
+                labelText += "Please set your Beat Saber install directory.";
+            if (_steamProcess != null && _steamProcess.CurrentUserId == 0)
+                labelText += "Please log into Steam.";
+            this.Invoke((Action)delegate { downloadInfoLabel.Text = labelText; });
+
+            if (BSInstallDir == null || _steamProcess == null)
+                return;
+
+            if (_steamProcess.CurrentUserId == 0)
+                this.Invoke((Action)delegate { RefreshUI(false); });
+
+            //await _steamProcess.WaitForLogin();
+            //this.Invoke((Action)delegate { RefreshUI(true); });
+
+            foreach (var version in Versions)
+            {
+                var versionExists = Directory.Exists($"{BSInstallDir} {version.BSVersion}");
+                var shortcutExists = _steamProcess.CheckForSteamShortcut($"Beat Saber {version.BSVersion}");
+
+                if (versionExists && !shortcutExists)
+                    _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {version.BSVersion}", $"{BSInstallDir} {version.BSVersion}", "LaunchBS.bat"));
+                if (!versionExists && shortcutExists)
+                    _steamProcess.DeleteSteamShortcut($"Beat Saber {version.BSVersion}");
+            }
+
+            if (_steamProcess.ShortcutsChanged)
+            {
+                this.Invoke((Action)delegate
+                {
+                    installStateLabel.Text = "Restarting Steam...";
+                    downloadInfoLabel.Text = "Waiting for Steam login...";
+                    RefreshUI(false);
+                });
+                await _steamProcess.Restart();
+                this.Invoke((Action)delegate
+                {
+                    installStateLabel.Text = "Done!";
+                    downloadInfoLabel.Text = "";
+                    RefreshUI(true);
+                });
+            }
+
+            _isRefreshing = false;
         }
 
         private async void StealFocus(int delay)
@@ -172,12 +230,17 @@ namespace LegacyInstaller
 
         private void installButton_Click(object sender, EventArgs e)
         {
-            if (!_steamProcess.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}") && Directory.Exists(SelectedVersionInstallDir))
+            if (Directory.Exists(SelectedVersionInstallDir))
             {
-                _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
-                installButton.Text = "Install";
-                installStateLabel.Text = "Already Installed";
-                installButton.Enabled = false;
+                if (!_steamProcess.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}"))
+                    _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
+                else
+                {
+                    _steamProcess.DeleteSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
+                    Directory.Delete(SelectedVersionInstallDir, true);
+                }
+
+                RefreshUI(true);
                 return;
             }
             
@@ -206,7 +269,7 @@ namespace LegacyInstaller
             watcher.IncludeSubdirectories = true;
             watcher.EnableRaisingEvents = true; 
             watcher.Changed += FileSystemChanged;
-            await CopyDirectory(_steamProcess.ContentAppDepotDir, SelectedVersionInstallDir);
+            await Utilities.CopyDirectory(_steamProcess.ContentAppDepotDir, SelectedVersionInstallDir);
 
             // Install to steam
             this.Invoke((Action)delegate { installStateLabel.Text = "Installing..."; });
@@ -214,8 +277,17 @@ namespace LegacyInstaller
             _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
 
             // Restart steam
-            this.Invoke((Action)delegate { installStateLabel.Text = "Already Installed"; });
+            this.Invoke((Action)delegate
+            {
+                installStateLabel.Text = "Restarting Steam...";
+                downloadInfoLabel.Text = "Waiting for Steam login...";
+            });
             await _steamProcess.Restart();
+            this.Invoke((Action)delegate 
+            { 
+                installStateLabel.Text = "Already Installed";
+                downloadInfoLabel.Text = "";
+            });
 
             // Enable UI
             this.Invoke((Action)delegate { RefreshUI(true); });
@@ -230,25 +302,6 @@ namespace LegacyInstaller
             {
                 downloadInfoLabel.Text = DateTime.Now.ToString("ffffff") + ": " + e.FullPath.Replace(_steamProcess.ContentAppDepotDir, "").Replace(SelectedVersionInstallDir, "");
             });
-        }
-
-        private async Task CopyDirectory(string sourceDir, string targetDir)
-        {
-            try
-            {
-                Directory.CreateDirectory(targetDir);
-
-                foreach (var file in Directory.GetFiles(sourceDir))
-                {
-                    var fileSource = File.OpenRead(file);
-                    var fileTarget = File.Create(Path.Combine(targetDir, Path.GetFileName(file)));
-                    await fileSource.CopyToAsync(fileTarget);
-                }
-
-                foreach (var directory in Directory.GetDirectories(sourceDir))
-                    await CopyDirectory(directory, Path.Combine(targetDir, Path.GetFileName(directory)));
-            }
-            catch { }
         }
 
         private async Task CopyLaunchFileTo(string targetDir)

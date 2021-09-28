@@ -173,6 +173,7 @@
     <Compile Include="SteamPatcher.cs" />
     <Compile Include="SteamProcess.cs" />
     <Compile Include="SteamShortcut.cs" />
+    <Compile Include="Utilities.cs" />
     <Compile Include="Version.cs" />
     <EmbeddedResource Include="Form1.resx">
       <DependentUpon>Form1.cs</DependentUpon>

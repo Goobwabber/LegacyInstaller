@@ -54,7 +54,7 @@ namespace LegacyInstaller
                 throw new MemoryUnreadableException();
 
             var strBytes = Encoding.UTF8.GetBytes(TargetString);
-            var strIndex = Search(buffer, strBytes);
+            var strIndex = Utilities.Search(buffer, strBytes);
             if (strIndex == -1)
                 throw new StringNotFoundException();
 
@@ -64,7 +64,7 @@ namespace LegacyInstaller
             Debug.WriteLine($"String address: {strAddress.ToString("X")}");
             Debug.WriteLine(BitConverter.ToString(pushBytes));
 
-            var pushIndex = Search(buffer, pushBytes);
+            var pushIndex = Utilities.Search(buffer, pushBytes);
             if (pushIndex == -1)
                 throw new PatternNotFoundException();
 
@@ -91,24 +91,6 @@ namespace LegacyInstaller
                 throw new UnableToWriteMemoryException();
 
             Debug.WriteLine("Wrote patch to memory.");
-        }
-
-        static int Search(byte[] src, byte[] pattern)
-        {
-            int maxFirstCharSlot = src.Length - pattern.Length + 1;
-            for (int i = 0; i < maxFirstCharSlot; i++)
-            {
-                if (src[i] != pattern[0]) // compare only first byte
-                    continue;
-
-                // found a match on first byte, now try to match rest of the pattern
-                for (int j = pattern.Length - 1; j >= 1; j--)
-                {
-                    if (src[i + j] != pattern[j]) break;
-                    if (j == 1) return i;
-                }
-            }
-            return -1;
         }
 
         public class ProcessNotFoundException : Exception

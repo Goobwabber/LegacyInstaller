@@ -1,89 +1,114 @@
 ﻿using System;
 using System.Diagnostics;
-using System.IO;
-using System.Reflection;
-using System.Threading.Tasks;
+using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 
 namespace LegacyInstaller
 {
     class SteamPatcher
     {
-        private const string DownpatcherResourcePath = "LegacyInstaller.SteamDepotDownpatcher.exe";
-        private static string DownpatcherPath => Path.Combine(Path.GetTempPath(), "SteamDepotDownpatcher.exe");
+        private const string ProcessName = "steam";
+        private const string ModuleName = "steamclient.dll";
+        private const string TargetString = "Depot download failed : Manifest not available";
 
-        private static Process _downpatcherProcess;
-        private static TaskCompletionSource<bool> _downpatcherTcs;
+        private const int PROCESS_VM_READ = 0x0010;
+        private const int PROCESS_VM_WRITE = 0x0020;
+        private const int PROCESS_VM_OPERATION = 0x0008;
+        private const int PROCESS_QUERY_INFORMATION = 0x0400;
+        private const int PROCESS_ALL_ACCESS = 0x1F0FFF;
 
-        public static async Task ApplyPatch()
+        [DllImport("kernel32.dll")]
+        public static extern IntPtr OpenProcess(int dwDesiredAccess, bool bInheritHandle, int dwProcessId);
+
+        [DllImport("kernel32.dll")]
+        public static extern bool ReadProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesRead);
+
+        [DllImport("kernel32.dll", SetLastError = true)]
+        static extern bool WriteProcessMemory(int hProcess, int lpBaseAddress, byte[] lpBuffer, int dwSize, ref int lpNumberOfBytesWritten);
+
+        public static void ApplyPatch()
         {
-            if (_downpatcherProcess != null)
-                return;
+            // Find steam process
+            var steamProcess = Process.GetProcessesByName(ProcessName).FirstOrDefault();
+            if (steamProcess == null)
+                throw new ProcessNotFoundException();
 
-            if (!File.Exists(DownpatcherPath))
-            {
-                var downpatcherResourceStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(DownpatcherResourcePath);
-                var downpatcherFileStream = File.Create(DownpatcherPath);
-                downpatcherResourceStream.Seek(0, SeekOrigin.Begin);
-                downpatcherResourceStream.CopyTo(downpatcherFileStream);
-                downpatcherFileStream.Close();
-            }
+            var steamClientModule = steamProcess.Modules.Cast<ProcessModule>().FirstOrDefault(module => module.ModuleName == ModuleName);
+            if (steamClientModule == null)
+                throw new ProcessNotFoundException();
 
-            _downpatcherProcess = new Process();
-            _downpatcherProcess.StartInfo.FileName = DownpatcherPath;
-            _downpatcherProcess.StartInfo.CreateNoWindow = true;
-            _downpatcherProcess.StartInfo.RedirectStandardOutput = true;
-            _downpatcherProcess.StartInfo.RedirectStandardError = true;
-            _downpatcherProcess.StartInfo.UseShellExecute = false;
-            _downpatcherProcess.OutputDataReceived += _downpatcherProcess_DataReceived;
-            _downpatcherProcess.ErrorDataReceived += _downpatcherProcess_DataReceived;
+            const int accessFlags = PROCESS_QUERY_INFORMATION | PROCESS_VM_OPERATION | PROCESS_VM_READ | PROCESS_VM_WRITE;
+            IntPtr steamProcessHandle = OpenProcess(accessFlags, false, steamProcess.Id);
+            if (steamProcessHandle == IntPtr.Zero)
+                throw new UnableToOpenProcessException();
 
-            _downpatcherTcs = new TaskCompletionSource<bool>();
-            _downpatcherProcess.Start();
+            IntPtr steamClientHandle = steamClientModule.BaseAddress;
 
-            _downpatcherProcess.BeginOutputReadLine();
-            _downpatcherProcess.BeginErrorReadLine();
+            Debug.WriteLine($"Process handle: {steamProcessHandle.ToString("X")}");
+            Debug.WriteLine($"Module handle: {steamClientHandle.ToString("X")}");
 
-            try
-            {
-                await _downpatcherTcs.Task;
-            }
-            catch
-            {
-                if (_downpatcherProcess.HasExited)
-                    return;
+            int bytesRead = 0;
+            byte[] buffer = new byte[steamClientModule.ModuleMemorySize];
+            if (ReadProcessMemory((int)steamProcessHandle, (int)steamClientHandle, buffer, buffer.Length, ref bytesRead) == false)
+                throw new MemoryUnreadableException();
 
-                _downpatcherProcess.Kill();
-                _downpatcherProcess = null;
+            var strBytes = Encoding.UTF8.GetBytes(TargetString);
+            var strIndex = Search(buffer, strBytes);
+            if (strIndex == -1)
+                throw new StringNotFoundException();
 
-                throw;
-            }
+            var strAddress = (int)steamClientHandle + strIndex;
+            var pushBytes = BitConverter.GetBytes(strAddress).Prepend<byte>(0x68).ToArray();
 
-            if (_downpatcherProcess.HasExited)
-                return;
+            Debug.WriteLine($"String address: {strAddress.ToString("X")}");
+            Debug.WriteLine(BitConverter.ToString(pushBytes));
 
-            _downpatcherProcess.Kill();
-            _downpatcherProcess = null;
+            var pushIndex = Search(buffer, pushBytes);
+            if (pushIndex == -1)
+                throw new PatternNotFoundException();
+
+            Debug.WriteLine($"Pattern index: {pushIndex.ToString("X")}");
+
+            // 0x0F 0x85 is JNZ instruction (jump if true)
+            var index = pushIndex;
+            while (buffer[index] != 0x0F && buffer[index + 1] != 0x85)
+                index -= 1;
+
+            // Either the patch has already been applied or the JNZ isn't there
+            // We want to prevent writing over code which isn't actually part
+            // of what we want to patch.
+            if (index < pushIndex - 10)
+                throw new PatchAlreadyAppliedException();
+
+            // Replace 2-byte jnz with nop, jmp
+            buffer[index] = 0x90;
+            buffer[index + 1] = 0xE9;
+
+            int bytesWritten = 0;
+            var patchAddress = (int)steamClientHandle + index;
+            if (WriteProcessMemory((int)steamProcessHandle, patchAddress, buffer.Skip(index).Take(2).ToArray(), 2, ref bytesWritten) == false)
+                throw new UnableToWriteMemoryException();
+
+            Debug.WriteLine("Wrote patch to memory.");
         }
 
-        private static void _downpatcherProcess_DataReceived(object sender, DataReceivedEventArgs e)
+        static int Search(byte[] src, byte[] pattern)
         {
-            if (_downpatcherTcs.Task.IsCompleted)
-                return;
+            int maxFirstCharSlot = src.Length - pattern.Length + 1;
+            for (int i = 0; i < maxFirstCharSlot; i++)
+            {
+                if (src[i] != pattern[0]) // compare only first byte
+                    continue;
 
-            if (e.Data == "error.ProcessNotFound")
-                _downpatcherTcs.SetException(new ProcessNotFoundException());
-            if (e.Data == "error.UnableToOpenProcess")
-                _downpatcherTcs.SetException(new UnableToOpenProcessException());
-            if (e.Data == "error.StringNotFound")
-                _downpatcherTcs.SetException(new StringNotFoundException());
-            if (e.Data == "error.PatternNotFound")
-                _downpatcherTcs.SetException(new PatternNotFoundException());
-            if (e.Data == "error.PatchAlreadyApplied")
-                _downpatcherTcs.SetException(new PatchAlreadyAppliedException());
-            if (e.Data == "error.PatchAppliedIncorrectly")
-                _downpatcherTcs.SetException(new PatchAppliedIncorrectlyException());
-            if (e.Data == "Press ENTER to close.")
-                _downpatcherTcs.SetResult(true);
+                // found a match on first byte, now try to match rest of the pattern
+                for (int j = pattern.Length - 1; j >= 1; j--)
+                {
+                    if (src[i + j] != pattern[j]) break;
+                    if (j == 1) return i;
+                }
+            }
+            return -1;
         }
 
         public class ProcessNotFoundException : Exception
@@ -126,6 +151,20 @@ namespace LegacyInstaller
             public PatchAppliedIncorrectlyException() : base() { }
             public PatchAppliedIncorrectlyException(string message) : base(message) { }
             public PatchAppliedIncorrectlyException(string message, Exception inner) : base(message, inner) { }
+        }
+
+        public class MemoryUnreadableException : Exception
+        {
+            public MemoryUnreadableException() : base() { }
+            public MemoryUnreadableException(string message) : base(message) { }
+            public MemoryUnreadableException(string message, Exception inner) : base(message, inner) { }
+        }
+
+        public class UnableToWriteMemoryException : Exception
+        {
+            public UnableToWriteMemoryException() : base() { }
+            public UnableToWriteMemoryException(string message) : base(message) { }
+            public UnableToWriteMemoryException(string message, Exception inner) : base(message, inner) { }
         }
     }
 }

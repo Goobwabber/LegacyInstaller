@@ -2,14 +2,8 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Data;
-using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 
@@ -112,12 +106,12 @@ namespace LegacyInstaller
         private async void StealFocus(int delay)
         {
             await Task.Delay(delay);
-            this.Invoke((Action)delegate
+            await Task.Run(() => this.Invoke((Action)delegate
             {
                 this.TopMost = true;
                 this.TopMost = false;
                 this.Activate();
-            });
+            }));
         }
 
         private void bsPathBrowseButton_Click(object sender, EventArgs e)

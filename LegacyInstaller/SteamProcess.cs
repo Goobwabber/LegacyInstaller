@@ -47,11 +47,11 @@ namespace LegacyInstaller
 
         public async Task PatchDownloadDepot()
         {
-            try
+            await Task.Run(() =>
             {
-                await SteamPatcher.ApplyPatch();
-            }
-            catch(SteamPatcher.PatchAlreadyAppliedException) { }
+                try { SteamPatcher.ApplyPatch(); }
+                catch (SteamPatcher.PatchAlreadyAppliedException) { }
+            });
             _patchedProcessId = Process.Id;
         }
 

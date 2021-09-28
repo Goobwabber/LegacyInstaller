@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace LegacyInstaller
@@ -60,6 +61,12 @@ namespace LegacyInstaller
                 bytes = bytes.Concat(sha.ComputeHash(File.ReadAllBytes(file))).ToArray();
             }
             return BitConverter.ToString(sha.ComputeHash(bytes));
+        }
+
+        public static string GenerateStringChecksum(string input)
+        {
+            var sha = SHA1.Create();
+            return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(input)));
         }
     }
 }

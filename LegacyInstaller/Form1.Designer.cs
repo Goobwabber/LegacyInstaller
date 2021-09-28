@@ -45,12 +45,14 @@ namespace LegacyInstaller
             // 
             // versionDropdown
             // 
+            this.versionDropdown.DrawMode = System.Windows.Forms.DrawMode.OwnerDrawFixed;
             this.versionDropdown.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.versionDropdown.FormattingEnabled = true;
             this.versionDropdown.Location = new System.Drawing.Point(63, 107);
             this.versionDropdown.Name = "versionDropdown";
             this.versionDropdown.Size = new System.Drawing.Size(121, 21);
             this.versionDropdown.TabIndex = 0;
+            this.versionDropdown.DrawItem += new System.Windows.Forms.DrawItemEventHandler(this.versionDropdown_DrawItem);
             this.versionDropdown.SelectedIndexChanged += new System.EventHandler(this.versionDropdown_SelectedIndexChanged);
             // 
             // label1

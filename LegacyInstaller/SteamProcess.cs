@@ -16,7 +16,7 @@ namespace LegacyInstaller
             .OpenSubKey(@"SOFTWARE\Valve\Steam\ActiveProcess").GetValue("ActiveUser");
         public bool HasExited => Process == null || Process.HasExited;
         public bool IsPatched => Process != null && Process.Id == _patchedProcessId;
-        public bool ShortcutsChanged => Process != null && Process.Id == _shortcutsChangedProcessId;
+        public bool ShortcutsChanged => _shortcutsChangedProcessId != 0 && Process != null && Process.Id == _shortcutsChangedProcessId;
 
         public string InstallDir { get; private set; }
         public string ContentDir => Path.Combine(InstallDir, "steamapps", "content");
@@ -97,7 +97,7 @@ namespace LegacyInstaller
             if (!File.Exists(ShortcutsFile))
                 return false;
             var shortcuts = File.ReadAllText(ShortcutsFile);
-            return shortcuts.Contains(shortcut);
+            return shortcuts.Contains($"\x00{shortcut}\x00");
         }
 
         public void AddSteamShortcut(SteamShortcut shortcut)
@@ -119,7 +119,8 @@ namespace LegacyInstaller
 
             File.WriteAllBytes(ShortcutsFile, newShortcuts.ToArray());
 
-            _shortcutsChangedProcessId = Process.Id;
+            if (!HasExited)
+                _shortcutsChangedProcessId = Process.Id;
         }
 
         public void DeleteSteamShortcut(string appName)
@@ -137,7 +138,8 @@ namespace LegacyInstaller
             var newShortcuts = Regex.Replace(shortcuts, @"\x00[\d]\x00(?!.*?\x00[\d]\x00.*?\x01AppName\x00" + appName + @"\x00).*?\x08\x08", "");
             File.WriteAllText(ShortcutsFile, newShortcuts, Encoding.ASCII);
 
-            _shortcutsChangedProcessId = Process.Id;
+            if (!HasExited)
+                _shortcutsChangedProcessId = Process.Id;
         }
 
         public int GetSteamShortcutCount()

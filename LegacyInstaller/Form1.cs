@@ -2,6 +2,8 @@ using Microsoft.Win32;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
@@ -121,7 +123,7 @@ namespace LegacyInstaller
                 labelText += "Please log into Steam.";
             this.Invoke((Action)delegate { downloadInfoLabel.Text = labelText; });
 
-            if (BSInstallDir == null || _steamProcess == null)
+            if (BSInstallDir == null || _steamProcess == null || _steamProcess.HasExited)
                 return;
 
             if (_steamProcess.CurrentUserId == 0)
@@ -130,6 +132,7 @@ namespace LegacyInstaller
             //await _steamProcess.WaitForLogin();
             //this.Invoke((Action)delegate { RefreshUI(true); });
 
+            var currentLaunchBSChecksum = Utilities.GenerateStringChecksum(await new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(LaunchFileResourcePath)).ReadToEndAsync());
             foreach (var version in Versions)
             {
                 var versionExists = Directory.Exists($"{BSInstallDir} {version.BSVersion}");
@@ -139,6 +142,13 @@ namespace LegacyInstaller
                     _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {version.BSVersion}", $"{BSInstallDir} {version.BSVersion}", "LaunchBS.bat"));
                 if (!versionExists && shortcutExists)
                     _steamProcess.DeleteSteamShortcut($"Beat Saber {version.BSVersion}");
+                if (!versionExists)
+                    continue;
+
+                // Restore LaunchBS.bat if it doesnt exist or is old
+                var launchBSPath = Path.Combine($"{BSInstallDir} {version.BSVersion}", "LaunchBS.bat");
+                if (!File.Exists(launchBSPath) || currentLaunchBSChecksum != Utilities.GenerateStringChecksum(File.ReadAllText(launchBSPath)))
+                    await CopyLaunchFileTo($"{BSInstallDir} {version.BSVersion}");
             }
 
             if (_steamProcess.ShortcutsChanged)
@@ -226,6 +236,24 @@ namespace LegacyInstaller
         {
             SelectedVersion = (Version)versionDropdown.SelectedItem;
             RefreshUI(true);
+        }
+
+        private void versionDropdown_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index == -1)
+                return;
+
+            string text = ((ComboBox)sender).Items[e.Index].ToString();         
+
+            Brush brush = Brushes.White;
+            if (!e.State.HasFlag(DrawItemState.ComboBoxEdit) && Directory.Exists($"{BSInstallDir} {Versions[e.Index]}"))
+                brush = Brushes.LightGreen;
+
+            if (e.State.HasFlag(DrawItemState.Selected) && !e.State.HasFlag(DrawItemState.ComboBoxEdit))
+                brush = Brushes.LightBlue;
+
+            e.Graphics.FillRectangle(brush, e.Bounds);
+            e.Graphics.DrawString(text, ((Control)sender).Font, Brushes.Black, e.Bounds.X, e.Bounds.Y);
         }
 
         private void installButton_Click(object sender, EventArgs e)

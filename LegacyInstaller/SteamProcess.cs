@@ -64,6 +64,9 @@ namespace LegacyInstaller
             await WaitForMainWindow();
         }
 
+
+
+        private const int MainWindowPollTime = 500;
         private const int WM_GETTEXT = 0x000D;
 
         [DllImport("user32.dll")]
@@ -73,23 +76,27 @@ namespace LegacyInstaller
         [DllImport("user32.dll", CharSet = CharSet.Auto)]
         static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, int wParam, StringBuilder lParam);
 
-        public async Task WaitForMainWindow() => await Task.Run(() =>
+        public async Task WaitForMainWindow()
         {
             List<string> windowTitles = new List<string>();
             while (!MainWindowTitles.All(title => windowTitles.Contains(title)))
             {
-                Process.Refresh();
-                var handles = new List<IntPtr>();
-                foreach (ProcessThread thread in Process.Threads)
-                    EnumThreadWindows(thread.Id,
-                        (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
-                foreach (var handle in handles)
+                await Task.Run(() =>
                 {
-                    StringBuilder message = new StringBuilder(1000);
-                    SendMessage(handle, WM_GETTEXT, message.Capacity, message);
-                    if (!string.IsNullOrEmpty(message.ToString()))
-                        windowTitles.Add(message.ToString());
-                }
+                    Process.Refresh();
+                    var handles = new List<IntPtr>();
+                    foreach (ProcessThread thread in Process.Threads)
+                        EnumThreadWindows(thread.Id,
+                            (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
+                    foreach (var handle in handles)
+                    {
+                        StringBuilder message = new StringBuilder(1000);
+                        SendMessage(handle, WM_GETTEXT, message.Capacity, message);
+                        if (!string.IsNullOrEmpty(message.ToString()))
+                            windowTitles.Add(message.ToString());
+                    }
+                });
+                await Task.Delay(MainWindowPollTime);
             }
         });
     }

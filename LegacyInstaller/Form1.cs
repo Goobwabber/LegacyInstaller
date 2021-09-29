@@ -34,36 +34,23 @@ namespace LegacyInstaller
             var bsVersionsStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(VersionsResourcePath);
             string versionList = new StreamReader(bsVersionsStream).ReadToEnd();
             Versions = JsonConvert.DeserializeObject<List<Version>>(versionList);
-
             versionDropdown.Items.AddRange(Versions.ToArray());
 
-            try
+            var detectedBSPath = Utilities.DetectBeatSaberInstallPath();
+            if (detectedBSPath != null)
             {
-                var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-                var bsRegistryKey = hklm.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980");
-                var detectedBSPath = bsRegistryKey.GetValue("InstallLocation");
-                if (detectedBSPath != null && Directory.Exists((string)detectedBSPath))
-                {
-                    BSInstallDir = (string)detectedBSPath;
-                    bsPathTextBox.Text = (string)detectedBSPath;
-                }
-            } catch { }
+                BSInstallDir = (string)detectedBSPath;
+                bsPathTextBox.Text = (string)detectedBSPath;
+            }
 
-            try
+            var detectedSteamPath = Utilities.DetectSteamInstallPath();
+            if (detectedSteamPath != null)
             {
-                var detectedSteamPath = Registry.GetValue(
-                    @"HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Valve\Steam",
-                    "InstallPath",
-                    null
-                );
+                steamPathTextBox.Text = (string)detectedSteamPath;
+                _steamProcess = new SteamProcess((string)detectedSteamPath);
+            }
 
-                if (detectedSteamPath != null && Directory.Exists((string)detectedSteamPath))
-                {
-                    steamPathTextBox.Text = (string)detectedSteamPath;
-                    _steamProcess = new SteamProcess((string)detectedSteamPath);
-                }
-            } catch { }
-
+            RefreshUI(true);
             _ = RefreshInternal();
         }
 
@@ -84,7 +71,7 @@ namespace LegacyInstaller
                 installButton.Enabled = false;
             else
             {
-                if (_steamProcess != null && BSInstallDir != null)
+                if (_steamProcess != null && BSInstallDir != null && _steamProcess.CurrentUserId != 0)
                 {
                     installButton.Enabled = true;
 
@@ -102,35 +89,26 @@ namespace LegacyInstaller
                     }
                 }
                 else
+                {
+                    installStateLabel.Text = "";
                     installButton.Enabled = false;
+                }
+
+                var labelText = "";
+                if (_steamProcess == null)
+                    labelText += "Please set your Steam install directory.\n";
+                if (BSInstallDir == null)
+                    labelText += "Please set your Beat Saber install directory.\n";
+                if (_steamProcess != null && _steamProcess.CurrentUserId == 0)
+                    labelText += "Please log into Steam.\n";
+                downloadInfoLabel.Text = labelText;
             }
         }
 
-        private bool _isRefreshing;
         private async Task RefreshInternal()
         {
-            if (_isRefreshing == true)
+            if (_steamProcess == null || BSInstallDir == null || _steamProcess.CurrentUserId == 0)
                 return;
-
-            _isRefreshing = true;
-
-            var labelText = "";
-            if (_steamProcess == null)
-                labelText += "Please set your Steam install directory.";
-            if (BSInstallDir == null)
-                labelText += "Please set your Beat Saber install directory.";
-            if (_steamProcess != null && _steamProcess.CurrentUserId == 0)
-                labelText += "Please log into Steam.";
-            this.Invoke((Action)delegate { downloadInfoLabel.Text = labelText; });
-
-            if (BSInstallDir == null || _steamProcess == null || _steamProcess.HasExited)
-                return;
-
-            if (_steamProcess.CurrentUserId == 0)
-                this.Invoke((Action)delegate { RefreshUI(false); });
-
-            //await _steamProcess.WaitForLogin();
-            //this.Invoke((Action)delegate { RefreshUI(true); });
 
             var currentLaunchBSChecksum = Utilities.GenerateStringChecksum(await new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(LaunchFileResourcePath)).ReadToEndAsync());
             foreach (var version in Versions)
@@ -152,23 +130,7 @@ namespace LegacyInstaller
             }
 
             if (_steamProcess.ShortcutsChanged)
-            {
-                this.Invoke((Action)delegate
-                {
-                    installStateLabel.Text = "Restarting Steam...";
-                    downloadInfoLabel.Text = "Waiting for Steam login...";
-                    RefreshUI(false);
-                });
-                await _steamProcess.Restart();
-                this.Invoke((Action)delegate
-                {
-                    installStateLabel.Text = "Done!";
-                    downloadInfoLabel.Text = "";
-                    RefreshUI(true);
-                });
-            }
-
-            _isRefreshing = false;
+                await RestartSteam();
         }
 
         private async void StealFocus(int delay)
@@ -180,6 +142,23 @@ namespace LegacyInstaller
                 this.TopMost = false;
                 this.Activate();
             }));
+        }
+
+        private async Task RestartSteam()
+        {
+            this.Invoke((Action)delegate
+            {
+                installStateLabel.Text = "Restarting Steam...";
+                downloadInfoLabel.Text = "Waiting for Steam login...";
+                RefreshUI(false);
+            });
+            await _steamProcess.Restart();
+            this.Invoke((Action)delegate
+            {
+                installStateLabel.Text = "Done!";
+                downloadInfoLabel.Text = "";
+                RefreshUI(true);
+            });
         }
 
         private void bsPathBrowseButton_Click(object sender, EventArgs e)
@@ -268,7 +247,7 @@ namespace LegacyInstaller
                     Directory.Delete(SelectedVersionInstallDir, true);
                 }
 
-                RefreshUI(true);
+                _ = RestartSteam();
                 return;
             }
             
@@ -305,17 +284,7 @@ namespace LegacyInstaller
             _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
 
             // Restart steam
-            this.Invoke((Action)delegate
-            {
-                installStateLabel.Text = "Restarting Steam...";
-                downloadInfoLabel.Text = "Waiting for Steam login...";
-            });
-            await _steamProcess.Restart();
-            this.Invoke((Action)delegate 
-            { 
-                installStateLabel.Text = "Already Installed";
-                downloadInfoLabel.Text = "";
-            });
+            await RestartSteam();
 
             // Enable UI
             this.Invoke((Action)delegate { RefreshUI(true); });

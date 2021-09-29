@@ -12,8 +12,7 @@ namespace LegacyInstaller
     class SteamProcess
     {
         public Process Process => Process.GetProcessesByName("steam").FirstOrDefault();
-        public int CurrentUserId => (int)RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64)
-            .OpenSubKey(@"SOFTWARE\Valve\Steam\ActiveProcess").GetValue("ActiveUser");
+        public int CurrentUserId => Utilities.GetCurrentSteamUser();
         public bool HasExited => Process == null || Process.HasExited;
         public bool IsPatched => Process != null && Process.Id == _patchedProcessId;
         public bool ShortcutsChanged => _shortcutsChangedProcessId != 0 && Process != null && Process.Id == _shortcutsChangedProcessId;
@@ -45,7 +44,8 @@ namespace LegacyInstaller
         {
             Process.Kill();
             await Task.Delay(5000);
-            Process.Start(Path.Combine(InstallDir, "steam.exe"));
+            var steamProcess = Process.Start(Path.Combine(InstallDir, "steam.exe"));
+            steamProcess.WaitForInputIdle();
         }
 
         public async Task PatchDownloadDepot()
@@ -108,7 +108,7 @@ namespace LegacyInstaller
             if (!File.Exists(ShortcutsFile))
                 File.WriteAllText(ShortcutsFile, "\x00shortcuts\x00\x08\x08");
 
-            if (File.ReadAllText(ShortcutsFile).Contains(shortcut.AppName))
+            if (File.ReadAllText(ShortcutsFile).Contains($"\x00{shortcut.AppName}\x00"))
                 return;
 
             var shortcuts = File.ReadAllBytes(ShortcutsFile);
@@ -132,7 +132,7 @@ namespace LegacyInstaller
                 return;
 
             var shortcuts = File.ReadAllText(ShortcutsFile, Encoding.ASCII);
-            if (!shortcuts.Contains(appName))
+            if (!shortcuts.Contains($"\x00{appName}\x00"))
                 return;
 
             var newShortcuts = Regex.Replace(shortcuts, @"\x00[\d]\x00(?!.*?\x00[\d]\x00.*?\x01AppName\x00" + appName + @"\x00).*?\x08\x08", "");

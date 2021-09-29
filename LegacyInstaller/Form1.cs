@@ -77,7 +77,7 @@ namespace LegacyInstaller
 
                     if (SelectedVersionInstallDir != null && Directory.Exists(SelectedVersionInstallDir))
                     {
-                        var steamShortcutExists = _steamProcess.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
+                        var steamShortcutExists = _steamProcess.Shortcuts.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
                         installButton.Text = steamShortcutExists ? "Uninstall" : "Add To Steam";
                         installStateLabel.Text = steamShortcutExists ? "Already Installed" : "(Already Installed)";
 
@@ -114,12 +114,12 @@ namespace LegacyInstaller
             foreach (var version in Versions)
             {
                 var versionExists = Directory.Exists($"{BSInstallDir} {version.BSVersion}");
-                var shortcutExists = _steamProcess.CheckForSteamShortcut($"Beat Saber {version.BSVersion}");
+                var shortcutExists = _steamProcess.Shortcuts.CheckForSteamShortcut($"Beat Saber {version.BSVersion}");
 
                 if (versionExists && !shortcutExists)
-                    _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {version.BSVersion}", $"{BSInstallDir} {version.BSVersion}", "LaunchBS.bat"));
+                    _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {version.BSVersion}", $"{BSInstallDir} {version.BSVersion}", "LaunchBS.bat"));
                 if (!versionExists && shortcutExists)
-                    _steamProcess.DeleteSteamShortcut($"Beat Saber {version.BSVersion}");
+                    _steamProcess.Shortcuts.DeleteSteamShortcut($"Beat Saber {version.BSVersion}");
                 if (!versionExists)
                     continue;
 
@@ -129,7 +129,7 @@ namespace LegacyInstaller
                     await CopyLaunchFileTo($"{BSInstallDir} {version.BSVersion}");
             }
 
-            if (_steamProcess.ShortcutsChanged)
+            if (_steamProcess.Shortcuts.HasChanged)
                 await RestartSteam();
         }
 
@@ -160,6 +160,8 @@ namespace LegacyInstaller
                 RefreshUI(true);
             });
         }
+
+
 
         private void bsPathBrowseButton_Click(object sender, EventArgs e)
         {
@@ -211,6 +213,8 @@ namespace LegacyInstaller
             RefreshUI(true);
         }
 
+
+
         private void versionDropdown_SelectedIndexChanged(object sender, EventArgs e)
         {
             SelectedVersion = (Version)versionDropdown.SelectedItem;
@@ -239,11 +243,11 @@ namespace LegacyInstaller
         {
             if (Directory.Exists(SelectedVersionInstallDir))
             {
-                if (!_steamProcess.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}"))
-                    _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
+                if (!_steamProcess.Shortcuts.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}"))
+                    _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
                 else
                 {
-                    _steamProcess.DeleteSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
+                    _steamProcess.Shortcuts.DeleteSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
                     Directory.Delete(SelectedVersionInstallDir, true);
                 }
 
@@ -260,13 +264,9 @@ namespace LegacyInstaller
 
         private async Task InstallVersion(Version version)
         {
-            // Patch steam if not patched
-            if (!_steamProcess.IsPatched)
-                await _steamProcess.PatchDownloadDepot();
-
             // Start download
-            StealFocus(200);
-            await _steamProcess.DownloadDepot(version.ManifestId, FileSystemChanged);
+            StealFocus(500); // Steal focus after download start
+            await _steamProcess.Downloader.DownloadDepot(version.ManifestId, FileSystemChanged);
 
             // Copy files
             this.Invoke((Action)delegate { installStateLabel.Text = "Copying..."; });
@@ -276,12 +276,12 @@ namespace LegacyInstaller
             watcher.IncludeSubdirectories = true;
             watcher.EnableRaisingEvents = true; 
             watcher.Changed += FileSystemChanged;
-            await Utilities.CopyDirectory(_steamProcess.ContentAppDepotDir, SelectedVersionInstallDir);
+            await Utilities.CopyDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
 
             // Install to steam
             this.Invoke((Action)delegate { installStateLabel.Text = "Installing..."; });
             await CopyLaunchFileTo(SelectedVersionInstallDir);
-            _steamProcess.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
+            _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
 
             // Restart steam
             await RestartSteam();
@@ -292,12 +292,12 @@ namespace LegacyInstaller
 
         private void FileSystemChanged(object sender, FileSystemEventArgs e)
         {
-            if (!e.FullPath.Contains(_steamProcess.ContentAppDepotDir) && !e.FullPath.Contains(SelectedVersionInstallDir))
+            if (!e.FullPath.Contains(_steamProcess.Downloader.ContentAppDepotDir) && !e.FullPath.Contains(SelectedVersionInstallDir))
                 return;
 
             this.Invoke((Action)delegate
             {
-                downloadInfoLabel.Text = DateTime.Now.ToString("ffffff") + ": " + e.FullPath.Replace(_steamProcess.ContentAppDepotDir, "").Replace(SelectedVersionInstallDir, "");
+                downloadInfoLabel.Text = DateTime.Now.ToString("ffffff") + ": " + e.FullPath.Replace(_steamProcess.Downloader.ContentAppDepotDir, "").Replace(SelectedVersionInstallDir, "");
             });
         }
 

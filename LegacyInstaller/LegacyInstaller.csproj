@@ -170,9 +170,11 @@
     </Compile>
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SteamDownloader.cs" />
     <Compile Include="SteamPatcher.cs" />
     <Compile Include="SteamProcess.cs" />
     <Compile Include="SteamShortcut.cs" />
+    <Compile Include="SteamShortcuts.cs" />
     <Compile Include="Utilities.cs" />
     <Compile Include="Version.cs" />
     <EmbeddedResource Include="Form1.resx">

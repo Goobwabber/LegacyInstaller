@@ -52,13 +52,19 @@ namespace LegacyInstaller
             Downloader = new SteamDownloader(InstallDir);
         }
 
-        public async Task Restart()
+        public async Task Restart(string openTo = null)
         {
             await Task.Run(() =>
             {
                 Process.Kill();
                 Process.WaitForExit();
-                var steamProcess = Process.Start(SteamExecutable, "-silent +open steam://open/library");
+                var args = $"-silent +open steam://open/library" + (openTo != null ? $" +open {openTo}" : "");
+                Debug.WriteLine(args);
+                var steamProcess = new Process();
+                steamProcess.StartInfo.FileName = SteamExecutable;
+                steamProcess.StartInfo.Arguments = args;
+                steamProcess.StartInfo.UseShellExecute = true;
+                steamProcess.Start();
                 steamProcess.WaitForInputIdle();
             });
             await WaitForMainWindow();
@@ -81,6 +87,9 @@ namespace LegacyInstaller
             List<string> windowTitles = new List<string>();
             while (!MainWindowTitles.All(title => windowTitles.Contains(title)))
             {
+                if (Process == null)
+                    continue;
+
                 await Task.Run(() =>
                 {
                     Process.Refresh();
@@ -98,6 +107,6 @@ namespace LegacyInstaller
                 });
                 await Task.Delay(MainWindowPollTime);
             }
-        });
+        }
     }
 }

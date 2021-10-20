@@ -1,5 +1,6 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Data.HashFunction.CRC;
 using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
@@ -104,5 +105,24 @@ namespace LegacyInstaller
         public static int GetCurrentSteamUser()
             => (int)RegistryKey.OpenBaseKey(RegistryHive.CurrentUser, RegistryView.Registry64)
                 .OpenSubKey(@"SOFTWARE\Valve\Steam\ActiveProcess").GetValue("ActiveUser");
+
+        public static UInt64 GetSteamAppId(string appName, string path, string exe)
+        {
+            var crc = CRCFactory.Instance.Create(new CRCConfig
+            {
+                HashSizeInBits = 32,
+                Polynomial = 0x04C11DB7,
+                ReflectIn = true,
+                InitialValue = 0xffffffff,
+                ReflectOut = true,
+                XOrOut = 0xffffffff
+            });
+
+            byte[] inputBytes = Encoding.UTF8.GetBytes("\"" + Path.Combine(path, exe) + "\"" + appName);
+            UInt64 top32 = BitConverter.ToUInt32(crc.ComputeHash(inputBytes).Hash, 0) | 0x80000000;
+            UInt64 gameId = (top32 << 32) | 0x02000000;
+
+            return gameId;
+        }
     }
 }

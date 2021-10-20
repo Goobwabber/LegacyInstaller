@@ -51,7 +51,7 @@ namespace LegacyInstaller
             }
 
             RefreshUI(true);
-            _ = RefreshInternal();
+            Task.Run(RefreshInternal);
         }
 
         private void Form1_FormClosed(object sender, FormClosedEventArgs e)
@@ -71,7 +71,7 @@ namespace LegacyInstaller
                 installButton.Enabled = false;
             else
             {
-                if (_steamProcess != null && BSInstallDir != null && _steamProcess.CurrentUserId != 0)
+                if (_steamProcess != null && BSInstallDir != null && _steamProcess.CurrentUserId != 0 && _steamProcess.Process != null)
                 {
                     installButton.Enabled = true;
 
@@ -99,7 +99,7 @@ namespace LegacyInstaller
                     labelText += "Please set your Steam install directory.\n";
                 if (BSInstallDir == null)
                     labelText += "Please set your Beat Saber install directory.\n";
-                if (_steamProcess != null && _steamProcess.CurrentUserId == 0)
+                if (_steamProcess != null && (_steamProcess.CurrentUserId == 0 || _steamProcess.Process == null))
                     labelText += "Please log into Steam.\n";
                 downloadInfoLabel.Text = labelText;
             }
@@ -107,8 +107,11 @@ namespace LegacyInstaller
 
         private async Task RefreshInternal()
         {
-            if (_steamProcess == null || BSInstallDir == null || _steamProcess.CurrentUserId == 0)
+            if (_steamProcess == null || BSInstallDir == null)
                 return;
+
+            await _steamProcess.WaitForMainWindow();
+            this.Invoke((Action)delegate { RefreshUI(); });
 
             var currentLaunchBSChecksum = Utilities.GenerateStringChecksum(await new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(LaunchFileResourcePath)).ReadToEndAsync());
             foreach (var version in Versions)
@@ -144,7 +147,7 @@ namespace LegacyInstaller
             }));
         }
 
-        private async Task RestartSteam()
+        private async Task RestartSteam(string openTo = null)
         {
             this.Invoke((Action)delegate
             {
@@ -152,7 +155,7 @@ namespace LegacyInstaller
                 downloadInfoLabel.Text = "Waiting for Steam login...";
                 RefreshUI(false);
             });
-            await _steamProcess.Restart();
+            await _steamProcess.Restart(openTo);
             this.Invoke((Action)delegate
             {
                 installStateLabel.Text = "Done!";
@@ -284,7 +287,8 @@ namespace LegacyInstaller
             _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
 
             // Restart steam
-            await RestartSteam();
+            var steamAppId = Utilities.GetSteamAppId($"Beat Saber {SelectedVersion.BSVersion}", $"{BSInstallDir} {SelectedVersion.BSVersion}", "LaunchBS.bat");
+            await RestartSteam($"steam://nav/games/details/{steamAppId}");
 
             // Enable UI
             this.Invoke((Action)delegate { RefreshUI(true); });

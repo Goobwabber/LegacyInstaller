@@ -245,23 +245,23 @@
     "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5570379635768010184"
   },
   {
-    "BSVersion": "1.18.1",
-    "ManifestId": "6835596583028648427",
-    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5570379635768010184"
+    "BSVersion":"1.18.1",
+    "BSManifest":"8961661233382948062",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/2994322456166449763"
   },
   {
-    "BSVersion": "1.18.2",
-    "ManifestId": "6558821762131072991",
-    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5570379635768010184"
+    "BSVersion":"1.18.2",
+    "BSManifest":"6835596583028648427",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3026974832179662032"
   },
   {
-    "BSVersion": "1.18.3",
-    "ManifestId": "8948172000430595334",
-    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5570379635768010184"
+    "BSVersion":"1.18.3",
+    "BSManifest":"6558821762131072991",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3067508483705433949"
   },
   {
-    "BSVersion": "1.19.0",
-    "ManifestId": "6504575834439294596",
-    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5570379635768010184"
+    "BSVersion":"1.19.0",
+    "BSManifest":"8948172000430595334",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3105792342251200877"
   }
 ]

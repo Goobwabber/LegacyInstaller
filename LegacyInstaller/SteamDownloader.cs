@@ -33,6 +33,7 @@ namespace LegacyInstaller
         {
             try { SteamPatcher.ApplyPatch(); }
             catch (SteamPatcher.PatchAlreadyAppliedException) { }
+            catch (SteamPatcher.StringNotFoundException) { }
         });
 
         private TaskCompletionSource<bool> _downloadDepotTcs;

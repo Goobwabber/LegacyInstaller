@@ -1,18 +1,17 @@
-using Microsoft.Win32;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
-using System.Drawing;
 using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Controls;
 
 namespace LegacyInstaller
 {
-    public partial class Form1 : Form
+    public partial class MainWindow : Window
     {
+        public static Label downloadInfoLabelObject;
         private const string VersionsResourcePath = "LegacyInstaller.BSVersions.json";
         private const string LaunchFileResourcePath = "LegacyInstaller.LaunchBS.bat";
 
@@ -23,18 +22,13 @@ namespace LegacyInstaller
         public string SelectedVersionInstallDir => BSInstallDir != null && SelectedVersion != null ? $"{BSInstallDir} {SelectedVersion.BSVersion}" : null;
 
         private SteamProcess _steamProcess = null;
-
-        public Form1()
+        public MainWindow()
         {
             InitializeComponent();
-        }
-
-        private void Form1_Load(object sender, EventArgs e)
-        {
             var bsVersionsStream = Assembly.GetExecutingAssembly().GetManifestResourceStream(VersionsResourcePath);
             string versionList = new StreamReader(bsVersionsStream).ReadToEnd();
             Versions = JsonConvert.DeserializeObject<List<Version>>(versionList);
-            versionDropdown.Items.AddRange(Versions.ToArray());
+            AddToCombo(Versions.ToArray(), versionDropdown);
 
             var detectedBSPath = Utilities.DetectBeatSaberInstallPath();
             if (detectedBSPath != null)
@@ -54,44 +48,46 @@ namespace LegacyInstaller
             Task.Run(RefreshInternal);
         }
 
-        private void Form1_FormClosed(object sender, FormClosedEventArgs e)
+        public void AddToCombo(Array array, ComboBox c)
         {
-
+            foreach (var a in array)
+            {
+                c.Items.Add(a);
+            }
         }
-
         private void RefreshUI(bool idle = true)
         {
-            versionDropdown.Enabled = idle;
-            bsPathTextBox.Enabled = idle;
-            bsPathBrowseButton.Enabled = idle;
-            steamPathTextBox.Enabled = idle;
-            steamPathBrowseButton.Enabled = idle;
+            versionDropdown.IsEnabled = idle;
+            bsPathTextBox.IsEnabled = idle;
+            bsPathBrowseButton.IsEnabled = idle;
+            steamPathTextBox.IsEnabled = idle;
+            steamPathBrowseButton.IsEnabled = idle;
 
             if (!idle)
-                installButton.Enabled = false;
+                installButton.IsEnabled = false;
             else
             {
                 if (_steamProcess != null && BSInstallDir != null && _steamProcess.CurrentUserId != 0 && _steamProcess.Process != null)
                 {
-                    installButton.Enabled = true;
+                    installButton.IsEnabled = true;
 
                     if (SelectedVersionInstallDir != null && Directory.Exists(SelectedVersionInstallDir))
                     {
                         var steamShortcutExists = _steamProcess.Shortcuts.CheckForSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
-                        installButton.Text = steamShortcutExists ? "Uninstall" : "Add To Steam";
-                        installStateLabel.Text = steamShortcutExists ? "Already Installed" : "(Already Installed)";
+                        installButton.Content = steamShortcutExists ? "Uninstall" : "Add To Steam";
+                        installStateLabel.Content = steamShortcutExists ? "Already Installed" : "(Already Installed)";
 
                     }
                     else
                     {
-                        installButton.Text = "Install";
-                        installStateLabel.Text = "";
+                        installButton.Content = "Install";
+                        installStateLabel.Content = "";
                     }
                 }
                 else
                 {
-                    installStateLabel.Text = "";
-                    installButton.Enabled = false;
+                    installStateLabel.Content = "";
+                    installButton.IsEnabled = false;
                 }
 
                 var labelText = "";
@@ -101,17 +97,16 @@ namespace LegacyInstaller
                     labelText += "Please set your Beat Saber install directory.\n";
                 if (_steamProcess != null && (_steamProcess.CurrentUserId == 0 || _steamProcess.Process == null))
                     labelText += "Please log into Steam.\n";
-                downloadInfoLabel.Text = labelText;
+                downloadInfoLabelObject.Content = labelText;
             }
         }
-
         private async Task RefreshInternal()
         {
             if (_steamProcess == null || BSInstallDir == null)
                 return;
 
             await _steamProcess.WaitForMainWindow();
-            this.Invoke((Action)delegate { RefreshUI(); });
+            this.Dispatcher.Invoke((Action)delegate { RefreshUI(); });
 
             var currentLaunchBSChecksum = Utilities.GenerateStringChecksum(await new StreamReader(Assembly.GetExecutingAssembly().GetManifestResourceStream(LaunchFileResourcePath)).ReadToEndAsync());
             foreach (var version in Versions)
@@ -135,41 +130,39 @@ namespace LegacyInstaller
             if (_steamProcess.Shortcuts.HasChanged)
                 await RestartSteam();
         }
-
         private async void StealFocus(int delay)
         {
             await Task.Delay(delay);
-            await Task.Run(() => this.Invoke((Action)delegate
+            await Task.Run(() => this.Dispatcher.Invoke((Action)delegate
             {
-                this.TopMost = true;
-                this.TopMost = false;
+                this.Topmost = true;
+                this.Topmost = false;
                 this.Activate();
             }));
         }
 
         private async Task RestartSteam(string openTo = null)
         {
-            this.Invoke((Action)delegate
+            this.Dispatcher.Invoke((Action)delegate
             {
-                installStateLabel.Text = "Restarting Steam...";
-                downloadInfoLabel.Text = "Waiting for Steam login...";
+                installStateLabel.Content = "Restarting Steam...";
+                downloadInfoLabel.Content = "Waiting for Steam login...";
                 RefreshUI(false);
             });
             await _steamProcess.Restart(openTo);
-            this.Invoke((Action)delegate
+            this.Dispatcher.Invoke((Action)delegate
             {
-                installStateLabel.Text = "Done!";
-                downloadInfoLabel.Text = "";
+                installStateLabel.Content = "Done!";
+                downloadInfoLabel.Content = "";
                 RefreshUI(true);
             });
         }
 
 
-
-        private void bsPathBrowseButton_Click(object sender, EventArgs e)
+        private void bsPathBrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new FolderBrowserDialog();
-            if (dialog.ShowDialog() != DialogResult.OK)
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                 return;
 
             bsPathTextBox.Text = dialog.SelectedPath;
@@ -177,24 +170,20 @@ namespace LegacyInstaller
                 BSInstallDir = bsPathTextBox.Text;
             else
                 BSInstallDir = null;
-
-            RefreshUI(true);
         }
 
-        private void bsPathTextBox_TextChanged(object sender, EventArgs e)
+        private void bsPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (bsPathTextBox.Text != null && Directory.Exists(bsPathTextBox.Text))
                 BSInstallDir = bsPathTextBox.Text;
             else
                 BSInstallDir = null;
-
-            RefreshUI(true);
         }
 
-        private void steamPathBrowseButton_Click(object sender, EventArgs e)
+        private void steamPathBrowseButton_Click(object sender, RoutedEventArgs e)
         {
-            var dialog = new FolderBrowserDialog();
-            if (dialog.ShowDialog() != DialogResult.OK)
+            var dialog = new System.Windows.Forms.FolderBrowserDialog();
+            if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
                 return;
 
             steamPathTextBox.Text = dialog.SelectedPath;
@@ -202,47 +191,24 @@ namespace LegacyInstaller
                 _steamProcess = new SteamProcess(steamPathTextBox.Text);
             else
                 _steamProcess = null;
-
-            RefreshUI(true);
         }
 
-        private void steamPathTextBox_TextChanged(object sender, EventArgs e)
+        private void steamPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (steamPathTextBox.Text != null && Directory.Exists(steamPathTextBox.Text))
                 _steamProcess = new SteamProcess(steamPathTextBox.Text);
             else
                 _steamProcess = null;
-
-            RefreshUI(true);
         }
 
 
 
-        private void versionDropdown_SelectedIndexChanged(object sender, EventArgs e)
+        private void versionDropdown_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             SelectedVersion = (Version)versionDropdown.SelectedItem;
-            RefreshUI(true);
         }
 
-        private void versionDropdown_DrawItem(object sender, DrawItemEventArgs e)
-        {
-            if (e.Index == -1)
-                return;
-
-            string text = ((ComboBox)sender).Items[e.Index].ToString();         
-
-            Brush brush = Brushes.White;
-            if (!e.State.HasFlag(DrawItemState.ComboBoxEdit) && Directory.Exists($"{BSInstallDir} {Versions[e.Index]}"))
-                brush = Brushes.LightGreen;
-
-            if (e.State.HasFlag(DrawItemState.Selected) && !e.State.HasFlag(DrawItemState.ComboBoxEdit))
-                brush = Brushes.LightBlue;
-
-            e.Graphics.FillRectangle(brush, e.Bounds);
-            e.Graphics.DrawString(text, ((Control)sender).Font, Brushes.Black, e.Bounds.X, e.Bounds.Y);
-        }
-
-        private void installButton_Click(object sender, EventArgs e)
+        private void installButton_Click(object sender, RoutedEventArgs e)
         {
             if (Directory.Exists(SelectedVersionInstallDir))
             {
@@ -257,10 +223,9 @@ namespace LegacyInstaller
                 _ = RestartSteam();
                 return;
             }
-            
-            installStateLabel.Text = "Downloading...";
-            downloadInfoLabel.Text = "Waiting for download to start...";
-            RefreshUI(false);
+
+            installStateLabel.Content = "Downloading...";
+            downloadInfoLabel.Content = "Waiting for download to start...";
 
             _ = InstallVersion(SelectedVersion);
         }
@@ -272,17 +237,17 @@ namespace LegacyInstaller
             await _steamProcess.Downloader.DownloadDepot(version.ManifestId, FileSystemChanged);
 
             // Copy files
-            this.Invoke((Action)delegate { installStateLabel.Text = "Copying..."; });
+            this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Copying..."; });
             Directory.CreateDirectory(SelectedVersionInstallDir);
             var watcher = new FileSystemWatcher(SelectedVersionInstallDir);
             watcher.NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.Security | NotifyFilters.Size;
             watcher.IncludeSubdirectories = true;
-            watcher.EnableRaisingEvents = true; 
+            watcher.EnableRaisingEvents = true;
             watcher.Changed += FileSystemChanged;
             await Utilities.CopyDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
 
             // Install to steam
-            this.Invoke((Action)delegate { installStateLabel.Text = "Installing..."; });
+            this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Installing..."; });
             await CopyLaunchFileTo(SelectedVersionInstallDir);
             _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
 
@@ -291,7 +256,7 @@ namespace LegacyInstaller
             await RestartSteam($"steam://nav/games/details/{steamAppId}");
 
             // Enable UI
-            this.Invoke((Action)delegate { RefreshUI(true); });
+            this.Dispatcher.Invoke((Action)delegate { RefreshUI(true); });
         }
 
         private void FileSystemChanged(object sender, FileSystemEventArgs e)
@@ -299,9 +264,9 @@ namespace LegacyInstaller
             if (!e.FullPath.Contains(_steamProcess.Downloader.ContentAppDepotDir) && !e.FullPath.Contains(SelectedVersionInstallDir))
                 return;
 
-            this.Invoke((Action)delegate
+            this.Dispatcher.Invoke((Action)delegate
             {
-                downloadInfoLabel.Text = DateTime.Now.ToString("ffffff") + ": " + e.FullPath.Replace(_steamProcess.Downloader.ContentAppDepotDir, "").Replace(SelectedVersionInstallDir, "");
+                downloadInfoLabel.Content = DateTime.Now.ToString("ffffff") + ": " + e.FullPath.Replace(_steamProcess.Downloader.ContentAppDepotDir, "").Replace(SelectedVersionInstallDir, "");
             });
         }
 
@@ -313,6 +278,12 @@ namespace LegacyInstaller
             fileResourceStream.Seek(0, SeekOrigin.Begin);
             await fileResourceStream.CopyToAsync(fileStream);
             fileStream.Close();
+        }
+
+        private void downloadInfoLabel_Initialized(object sender, EventArgs e)
+        {
+            downloadInfoLabelObject = (Label)sender;
+            RefreshUI();
         }
     }
 }

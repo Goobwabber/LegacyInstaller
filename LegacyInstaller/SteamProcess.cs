@@ -15,7 +15,7 @@ namespace LegacyInstaller
     {
         private Process _process = null;
         public Process Process 
-        { 
+        {
             get
             {
                 if (_process == null || _process.HasExited)

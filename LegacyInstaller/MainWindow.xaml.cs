@@ -175,7 +175,10 @@ namespace LegacyInstaller
         private void bsPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (bsPathTextBox.Text != null && Directory.Exists(bsPathTextBox.Text))
+            {
                 BSInstallDir = bsPathTextBox.Text;
+                RefreshUI();
+            }
             else
                 BSInstallDir = null;
         }
@@ -196,7 +199,10 @@ namespace LegacyInstaller
         private void steamPathTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             if (steamPathTextBox.Text != null && Directory.Exists(steamPathTextBox.Text))
+            {
                 _steamProcess = new SteamProcess(steamPathTextBox.Text);
+                RefreshUI();
+            }
             else
                 _steamProcess = null;
         }

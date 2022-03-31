@@ -1,0 +1,29 @@
+name: Debug Build
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Setup msbuild
+      uses: microsoft/setup-msbuild@v1.0.2
+    - name: Install Dependencies
+      run: msbuild -t:restore
+    - name: Build Project
+      run: msbuild LegacyInstaller.sln /t:Build /p:Configuration=Debug
+    - name: Resolve Short Commit Hash
+      if: startsWith(github.ref, 'refs/tags/') == false
+      id: get_hash
+      shell: bash
+      run: echo ::set-output name=hash::`git rev-parse --short HEAD`
+    - name: Upload LegacyInstaller Build
+      if: startsWith(github.ref, 'refs/tags/') == false
+      uses: actions/upload-artifact@v2
+      with:
+        name: LegacyInstaller-${{ steps.get_hash.outputs.hash }}
+        path: ./bin/Debug/

@@ -5,22 +5,22 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:LegacyInstaller"
         mc:Ignorable="d"
-        ResizeMode="CanMinimize"
+        ResizeMode="CanResizeWithGrip"
         Title="LegacyInstaller" Height="245" Width="410" Background="#FFF0F0F0">
     <Grid>
         <Label x:Name="label2" Content="Beat Saber install folder:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,3,0,0" FontSize="10.5"/>
-        <TextBox x:Name="bsPathTextBox" TextChanged="bsPathTextBox_TextChanged"  HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,25,0,0"/>
-        <Button x:Name="bsPathBrowseButton" Click="bsPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,25,0,0"/>
-        
-        <Label x:Name="label3" Content="Steam install folder:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,49,0,0" FontSize="10.5"/>
-        <TextBox x:Name="steamPathTextBox" TextChanged="steamPathTextBox_TextChanged" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,70,0,0"/>
-        <Button x:Name="steamPathBrowseButton" Click="steamPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,70,0,0"/>
+        <TextBox x:Name="bsPathTextBox" TextChanged="bsPathTextBox_TextChanged"  HorizontalAlignment="Left" Height="37" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,25,0,0"/>
+        <Button x:Name="bsPathBrowseButton" Click="bsPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,31,0,0"/>
 
-        <Label x:Name="label1" Content="Version:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,103,0,0" FontSize="10.7"/>
-        <ComboBox x:Name="versionDropdown" SelectionChanged="versionDropdown_SelectedIndexChanged" HorizontalAlignment="Left" Height="20" Text="TextBox" VerticalAlignment="Top" Width="121" Margin="62,106,0,0"/>
-        <Button x:Name="installButton" Content="Install" Click="installButton_Click" HorizontalAlignment="Left" Height="20" Cursor="Hand" FontSize="11.5" VerticalAlignment="Top" Width="89" Margin="190,106,0,0"/>
-        <Label x:Name="installStateLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="281,104,0,0" FontSize="10.5"/>
+        <Label x:Name="label3" Content="Steam install folder:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,62,0,0" FontSize="10.5"/>
+        <TextBox x:Name="steamPathTextBox" TextChanged="steamPathTextBox_TextChanged" HorizontalAlignment="Left" Height="35" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,83,0,0"/>
+        <Button x:Name="steamPathBrowseButton" Click="steamPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,89,0,0"/>
 
-        <Label x:Name="downloadInfoLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,140,0,0" FontSize="11" Initialized="downloadInfoLabel_Initialized"/>
+        <Label x:Name="label1" Content="Version:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="7,123,0,0" FontSize="10.7"/>
+        <ComboBox x:Name="versionDropdown" SelectionChanged="versionDropdown_SelectedIndexChanged" HorizontalAlignment="Left" Height="20" Text="TextBox" VerticalAlignment="Top" Width="121" Margin="59,126,0,0"/>
+        <Button x:Name="installButton" Content="Install" Click="installButton_Click" HorizontalAlignment="Left" Height="20" Cursor="Hand" FontSize="11.5" VerticalAlignment="Top" Width="89" Margin="187,126,0,0"/>
+        <Label x:Name="installStateLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="12,182,0,0" FontSize="10.5"/>
+
+        <Label x:Name="downloadInfoLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,152,0,0" FontSize="11" Initialized="downloadInfoLabel_Initialized"/>
     </Grid>
 </Window>

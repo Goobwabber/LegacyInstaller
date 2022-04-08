@@ -92,11 +92,10 @@ namespace LegacyInstaller
         {
             try
             {
-                var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
-                var bsRegistryKey = hklm.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980");
-                var detectedBSPath = bsRegistryKey.GetValue("InstallLocation");
-                if (detectedBSPath != null && Directory.Exists((string)detectedBSPath))
-                    return (string)detectedBSPath;
+                if (Directory.Exists("C:/Program Files (x86)/Steam/steamapps/common/Beat Saber"))
+                {
+                    return "C:/Program Files (x86)/Steam/steamapps/common/Beat Saber";
+                }
             }
             catch { }
             return null;

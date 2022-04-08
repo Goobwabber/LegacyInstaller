@@ -1,5 +1,5 @@
 # LegacyInstaller - [Download here!](https://github.com/XCraftTM/LegacyInstaller/releases/latest)
-Program to easily install legacy versions of Beat Saber
+Program to easily install legacy versions of Beat Saber  
 Fork by XCraftTM from VinceCSS and Originally from Goobwabber
 
 Fixed:

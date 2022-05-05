@@ -211,6 +211,7 @@ namespace LegacyInstaller
         private void versionDropdown_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             SelectedVersion = (Version)versionDropdown.SelectedItem;
+            RefreshUI();
         }
 
         private void installButton_Click(object sender, RoutedEventArgs e)

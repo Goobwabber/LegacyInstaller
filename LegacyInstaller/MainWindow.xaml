@@ -7,13 +7,13 @@
         mc:Ignorable="d"
         ResizeMode="CanMinimize"
         Title="LegacyInstaller" Height="245" Width="410" Background="#FFF0F0F0">
-    <Grid>
+    <Grid ToolTip="Create a link">
         <Label x:Name="label2" Content="Beat Saber install folder:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,3,0,0" FontSize="10.5"/>
-        <TextBox x:Name="bsPathTextBox" TextChanged="bsPathTextBox_TextChanged"  HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,25,0,0"/>
+        <TextBox x:Name="bsPathTextBox" TextChanged="bsPathTextBox_TextChanged"  HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" VerticalAlignment="Top" Width="275" Margin="12,25,0,0"/>
         <Button x:Name="bsPathBrowseButton" Click="bsPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,25,0,0"/>
         
         <Label x:Name="label3" Content="Steam install folder:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,49,0,0" FontSize="10.5"/>
-        <TextBox x:Name="steamPathTextBox" TextChanged="steamPathTextBox_TextChanged" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" Text="TextBox" VerticalAlignment="Top" Width="275" Margin="12,70,0,0"/>
+        <TextBox x:Name="steamPathTextBox" TextChanged="steamPathTextBox_TextChanged" HorizontalAlignment="Left" Height="20" TextWrapping="Wrap" VerticalAlignment="Top" Width="275" Margin="12,70,0,0"/>
         <Button x:Name="steamPathBrowseButton" Click="steamPathBrowseButton_Click" Content="Browse..." HorizontalAlignment="Left" Cursor="Hand" VerticalAlignment="Top" Width="89" Margin="294,70,0,0"/>
 
         <Label x:Name="label1" Content="Version:" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,103,0,0" FontSize="10.7"/>
@@ -21,6 +21,9 @@
         <Button x:Name="installButton" Content="Install" Click="installButton_Click" HorizontalAlignment="Left" Height="20" Cursor="Hand" FontSize="11.5" VerticalAlignment="Top" Width="89" Margin="190,106,0,0"/>
         <Label x:Name="installStateLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="281,104,0,0" FontSize="10.5"/>
 
-        <Label x:Name="downloadInfoLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,140,0,0" FontSize="11" Initialized="downloadInfoLabel_Initialized"/>
+        <CheckBox x:Name="customLevelsLinkCheckbox" Content="Create link to custom levels" HorizontalAlignment="Left" Margin="10,132,0,0" VerticalAlignment="Top" IsChecked="True" ToolTip="Create a link to your main CustomLevels folder so that the custom songs are syned between installations."/>
+        <CheckBox x:Name="userDataLinkCheckbox" Content="Create link to user data" HorizontalAlignment="Left" Margin="10,152,0,0" VerticalAlignment="Top" ToolTip="Create a link to your main UserData folder so that your mod settings are syned between installations. Might cause issues very old versions of mods are installed."/>
+
+        <Label x:Name="downloadInfoLabel" Content="" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="10,181,0,0" FontSize="11" Initialized="downloadInfoLabel_Initialized"/>
     </Grid>
 </Window>

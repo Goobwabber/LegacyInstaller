@@ -100,6 +100,7 @@ namespace LegacyInstaller
                 downloadInfoLabelObject.Content = labelText;
             }
         }
+
         private async Task RefreshInternal()
         {
             if (_steamProcess == null || BSInstallDir == null)
@@ -207,8 +208,6 @@ namespace LegacyInstaller
                 _steamProcess = null;
         }
 
-
-
         private void versionDropdown_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             SelectedVersion = (Version)versionDropdown.SelectedItem;
@@ -223,7 +222,26 @@ namespace LegacyInstaller
                 else
                 {
                     _steamProcess.Shortcuts.DeleteSteamShortcut($"Beat Saber {SelectedVersion.BSVersion}");
-                    Directory.Delete(SelectedVersionInstallDir, true);
+
+                    try
+                    {
+                        // First delete junction links
+                        string customLevelsJunctionPath = Path.Combine(SelectedVersionInstallDir, "Beat Saber_Data", "CustomLevels");
+                        if (Directory.Exists(customLevelsJunctionPath) && Utilities.IsJunctionLink(customLevelsJunctionPath))
+                            Directory.Delete(customLevelsJunctionPath);
+
+                        string userDataJunctionLink = Path.Combine(SelectedVersionInstallDir, "UserData");
+                        if (Directory.Exists(userDataJunctionLink) && Utilities.IsJunctionLink(userDataJunctionLink))
+                            Directory.Delete(userDataJunctionLink);
+
+                        // Delete folder
+                        Directory.Delete(SelectedVersionInstallDir, true);
+                    }
+                    catch
+                    {
+                        string alertMessageContent = $"Uninstall failed, please check if the files have been deleted\n${SelectedVersionInstallDir}";
+                        _ = MessageBox.Show(alertMessageContent, "Uninstall failed", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    }
                 }
 
                 _ = RestartSteam();
@@ -263,6 +281,33 @@ namespace LegacyInstaller
 
             // Enable UI
             this.Dispatcher.Invoke((Action)delegate { RefreshUI(true); });
+
+            // Create Junction Links for custom levels
+            if (customLevelsLinkCheckbox.IsChecked.GetValueOrDefault())
+            {
+                string relativeDir = Path.Combine("Beat Saber_Data", "CustomLevels");
+                string sourceDir = Path.Combine(BSInstallDir, relativeDir);
+                string targetDir = Path.Combine(SelectedVersionInstallDir, relativeDir);
+
+                // Remove existing target dir folder
+                if (Directory.Exists(targetDir))
+                    Directory.Delete(targetDir, true);
+
+                Utilities.CreateJunctionLink(targetDir, sourceDir);
+            }
+
+            // Create Junction Links for user data
+            if (userDataLinkCheckbox.IsChecked.GetValueOrDefault())
+            {
+                string relativeDir = Path.Combine("UserData");
+                string sourceDir = Path.Combine(BSInstallDir, relativeDir);
+                string targetDir = Path.Combine(SelectedVersionInstallDir, relativeDir);
+
+                if (Directory.Exists(targetDir))
+                    Directory.Delete(targetDir, true);
+
+                Utilities.CreateJunctionLink(targetDir, sourceDir);
+            }
         }
 
         private void FileSystemChanged(object sender, FileSystemEventArgs e)
@@ -290,6 +335,11 @@ namespace LegacyInstaller
         {
             downloadInfoLabelObject = (Label)sender;
             RefreshUI();
+        }
+
+        private void CheckBox_Checked(object sender, RoutedEventArgs e)
+        {
+
         }
     }
 }

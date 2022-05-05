@@ -133,20 +133,10 @@ namespace LegacyInstaller
                 process.StartInfo.Arguments = $" /C mklink /J \"{destinationPath}\" \"{sourcePath}\"";
                 process.StartInfo.CreateNoWindow = true;
                 process.StartInfo.UseShellExecute = false;
-                process.StartInfo.RedirectStandardOutput = true;
-                process.OutputDataReceived += Process_OutputDataReceived;
 
                 process.Start();
-
-                Console.WriteLine(process.StandardOutput.ReadToEnd());
-
                 process.WaitForExit();
             }
-        }
-
-        private static void Process_OutputDataReceived(object sender, System.Diagnostics.DataReceivedEventArgs e)
-        {
-            Console.WriteLine(e.Data);
         }
 
         public static bool IsJunctionLink(string path)

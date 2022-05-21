@@ -268,5 +268,15 @@
     "BSVersion": "1.19.1",
     "ManifestId": "1175216641760077721",
     "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5771929045825669047"
+  },
+  {
+    "BSVersion": "1.20.0",
+    "ManifestId": "4202491068770948196",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/3096792662638975765"
+  },
+  {
+    "BSVersion": "1.21.0",
+    "ManifestId": "3648558848715327622",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5771929045825669047"
   }
 ]

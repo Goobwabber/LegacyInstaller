@@ -94,19 +94,12 @@ namespace LegacyInstaller
             {
                 var hklm = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
                 var bsRegistryKey = hklm.OpenSubKey(@"SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 620980");
-                if (bsRegistryKey != null)
-                {
-                    var bsInstallPath = bsRegistryKey.GetValue("InstallLocation");
-                    if (bsInstallPath != null && Directory.Exists((string)bsInstallPath))
-                        return (string)bsInstallPath;
-                }
-                if (Directory.Exists("C:/Program Files (x86)/Steam/steamapps/common/Beat Saber"))
-                {
-                    return "C:/Program Files (x86)/Steam/steamapps/common/Beat Saber";
-                }
+                var detectedBSPath = bsRegistryKey.GetValue("InstallLocation");
+                if (detectedBSPath != null && Directory.Exists((string)detectedBSPath))
+                    return (string)detectedBSPath;
             }
             catch { }
-            return "Please enter the Beat Saber install path manually";
+            return null;
         }
 
         public static int GetCurrentSteamUser()
@@ -130,6 +123,26 @@ namespace LegacyInstaller
             UInt64 gameId = (top32 << 32) | 0x02000000;
 
             return gameId;
+        }
+
+        public static void CreateJunctionLink(string destinationPath, string sourcePath)
+        {
+            using (System.Diagnostics.Process process = new System.Diagnostics.Process())
+            {
+                process.StartInfo.FileName = "cmd.exe";
+                process.StartInfo.Arguments = $" /C mklink /J \"{destinationPath}\" \"{sourcePath}\"";
+                process.StartInfo.CreateNoWindow = true;
+                process.StartInfo.UseShellExecute = false;
+
+                process.Start();
+                process.WaitForExit();
+            }
+        }
+
+        public static bool IsJunctionLink(string path)
+        {
+            FileInfo pathInfo = new FileInfo(path);
+            return pathInfo.Attributes.HasFlag(FileAttributes.ReparsePoint);
         }
     }
 }

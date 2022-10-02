@@ -302,11 +302,11 @@
    {
       "BSVersion":"1.25.0",
       "ManifestId":"3684718000373511599",
-      "ReleaseURL":NULL
+      "ReleaseURL":"NULL"
    },
    {
       "BSVersion":"1.24.1",
       "ManifestId":"3141359577983993890",
-      "ReleaseURL":NULL
+      "ReleaseURL":"NULL"
    }
 ]

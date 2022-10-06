@@ -280,33 +280,33 @@
     "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/5771929045825669047"
   },
   {
-      "BSVersion":"1.22.0",
-      "ManifestId":"4038188869828689801",
-      "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3181240878804806326"
-   },
-   {
-      "BSVersion":"1.22.1",
-      "ManifestId":"3771211058784167267",
-      "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3185745740381652029"
-   },
-   {
-      "BSVersion":"1.23.0",
-      "ManifestId":"8051970117665729770",
-      "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3346751320551809488"
-   },
-   {
-      "BSVersion":"1.24.0",
-      "ManifestId":"649695825989344999",
-      "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/4719226562388423388"
-   },
-   {
-      "BSVersion":"1.25.0",
-      "ManifestId":"3684718000373511599",
-      "ReleaseURL":"NULL"
-   },
-   {
-      "BSVersion":"1.24.1",
-      "ManifestId":"3141359577983993890",
-      "ReleaseURL":"NULL"
-   }
+    "BSVersion": "1.22.0",
+    "ManifestId": "4038188869828689801",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/3181240878804806326"
+  },
+  {
+    "BSVersion": "1.22.1",
+    "ManifestId": "3771211058784167267",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/3185745740381652029"
+  },
+  {
+    "BSVersion": "1.23.0",
+    "ManifestId": "8051970117665729770",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/3346751320551809488"
+  },
+  {
+    "BSVersion": "1.24.0",
+    "ManifestId": "649695825989344999",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/4719226562388423388"
+  },
+  {
+    "BSVersion": "1.24.1",
+    "ManifestId": "3141359577983993890",
+    "ReleaseURL": "NULL"
+  },
+  {
+    "BSVersion": "1.25.0",
+    "ManifestId": "4529582051007915041",
+    "ReleaseURL": "https://steamcommunity.com/games/620980/announcements/detail/3312985013538143172"
+  }
 ]

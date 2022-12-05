@@ -42,7 +42,7 @@ namespace LegacyInstaller
         {
             await PatchDownloadDepot();
 
-            if (_downloadDepotTcs != null)
+            if (_downloadDepotTcs != null && !(_downloadDepotTcs.Task.IsCompleted || _downloadDepotTcs.Task.IsCanceled || _downloadDepotTcs.Task.IsFaulted))
                 throw new DownloadInProgressException();
 
             if (eventHandler != null)

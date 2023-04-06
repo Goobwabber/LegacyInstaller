@@ -30,6 +30,11 @@ namespace LegacyInstaller
             catch { }
         }
 
+        public static void MoveDirectory(string sourceDir, string targetDir)
+        {
+            Directory.Move(sourceDir, targetDir);
+        }
+
         public static int Search(byte[] src, byte[] pattern)
         {
             int maxFirstCharSlot = src.Length - pattern.Length + 1;

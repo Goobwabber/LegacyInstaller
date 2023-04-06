@@ -262,14 +262,22 @@ namespace LegacyInstaller
             await _steamProcess.Downloader.DownloadDepot(version.ManifestId, FileSystemChanged);
 
             // Copy files
-            this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Copying..."; });
-            Directory.CreateDirectory(SelectedVersionInstallDir);
-            var watcher = new FileSystemWatcher(SelectedVersionInstallDir);
-            watcher.NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.Security | NotifyFilters.Size;
-            watcher.IncludeSubdirectories = true;
-            watcher.EnableRaisingEvents = true;
-            watcher.Changed += FileSystemChanged;
-            await Utilities.CopyDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
+            try
+            {
+                this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Moving..."; });
+                Utilities.MoveDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
+            }
+            catch
+            {
+                this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Copying..."; });
+                Directory.CreateDirectory(SelectedVersionInstallDir);
+                var watcher = new FileSystemWatcher(SelectedVersionInstallDir);
+                watcher.NotifyFilter = NotifyFilters.Attributes | NotifyFilters.CreationTime | NotifyFilters.DirectoryName | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite | NotifyFilters.Security | NotifyFilters.Size;
+                watcher.IncludeSubdirectories = true;
+                watcher.EnableRaisingEvents = true;
+                watcher.Changed += FileSystemChanged;
+                await Utilities.CopyDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
+            }
 
             // Install to steam
             this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Installing..."; });

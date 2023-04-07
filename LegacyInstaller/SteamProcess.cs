@@ -43,8 +43,6 @@ namespace LegacyInstaller
         public readonly string InstallDir;
         public readonly string SteamExecutable;
 
-        private readonly string[] MainWindowTitles = new[] { "Steam", "Servers", "Friends", "Default IME" };
-
         public SteamProcess(string installDir)
         {
             InstallDir = installDir;
@@ -73,7 +71,6 @@ namespace LegacyInstaller
 
 
         private const int MainWindowPollTime = 500;
-        private const int WM_GETTEXT = 0x000D;
 
         [DllImport("user32.dll")]
         static extern bool EnumThreadWindows(int dwThreadId, EnumThreadDelegate lpfn, IntPtr lParam);
@@ -84,29 +81,23 @@ namespace LegacyInstaller
 
         public async Task WaitForMainWindow()
         {
-            List<string> windowTitles = new List<string>();
-            while (!MainWindowTitles.All(title => windowTitles.Contains(title)))
+            // when Steam restarts, the user id still remains
+            while (Utilities.GetCurrentSteamUser() != 0)
             {
                 if (Process == null)
                     continue;
 
-                await Task.Run(() =>
-                {
-                    Process.Refresh();
-                    var handles = new List<IntPtr>();
-                    foreach (ProcessThread thread in Process.Threads)
-                        EnumThreadWindows(thread.Id,
-                            (hWnd, lParam) => { handles.Add(hWnd); return true; }, IntPtr.Zero);
-                    foreach (var handle in handles)
-                    {
-                        StringBuilder message = new StringBuilder(1000);
-                        SendMessage(handle, WM_GETTEXT, message.Capacity, message);
-                        if (!string.IsNullOrEmpty(message.ToString()))
-                            windowTitles.Add(message.ToString());
-                    }
-                });
                 await Task.Delay(MainWindowPollTime);
             }
+            // when Steam logs in, the user id is reset to 0
+            while (Utilities.GetCurrentSteamUser() == 0)
+            {
+                if (Process == null)
+                    continue;
+
+                await Task.Delay(MainWindowPollTime);
+            }
+            // when login is successful and window is loaded, the user id is set
         }
     }
 }

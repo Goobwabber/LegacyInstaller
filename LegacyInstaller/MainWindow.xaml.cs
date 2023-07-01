@@ -271,18 +271,6 @@ namespace LegacyInstaller
             watcher.Changed += FileSystemChanged;
             await Utilities.CopyDirectory(_steamProcess.Downloader.ContentAppDepotDir, SelectedVersionInstallDir);
 
-            // Install to steam
-            this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Installing..."; });
-            await CopyLaunchFileTo(SelectedVersionInstallDir);
-            _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
-
-            // Restart steam
-            var steamAppId = Utilities.GetSteamAppId($"Beat Saber {SelectedVersion.BSVersion}", $"{BSInstallDir} {SelectedVersion.BSVersion}", "LaunchBS.bat");
-            await RestartSteam($"steam://nav/games/details/{steamAppId}");
-
-            // Enable UI
-            this.Dispatcher.Invoke((Action)delegate { RefreshUI(true); });
-
             // Create Junction Links for custom levels
             if (customLevelsLinkCheckbox.IsChecked.GetValueOrDefault())
             {
@@ -309,6 +297,18 @@ namespace LegacyInstaller
 
                 Utilities.CreateJunctionLink(targetDir, sourceDir);
             }
+
+            // Install to steam
+            this.Dispatcher.Invoke((Action)delegate { installStateLabel.Content = "Installing..."; });
+            await CopyLaunchFileTo(SelectedVersionInstallDir);
+            _steamProcess.Shortcuts.AddSteamShortcut(new SteamShortcut($"Beat Saber {SelectedVersion.BSVersion}", SelectedVersionInstallDir, "LaunchBS.bat"));
+
+            // Restart steam
+            var steamAppId = Utilities.GetSteamAppId($"Beat Saber {SelectedVersion.BSVersion}", $"{BSInstallDir} {SelectedVersion.BSVersion}", "LaunchBS.bat");
+            await RestartSteam($"steam://nav/games/details/{steamAppId}");
+
+            // Enable UI
+            this.Dispatcher.Invoke((Action)delegate { RefreshUI(true); });
         }
 
         private void FileSystemChanged(object sender, FileSystemEventArgs e)

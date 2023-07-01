@@ -338,5 +338,25 @@
     "BSVersion":"1.29.1",
     "ManifestId":"886973241045584398",
     "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/6169409105101272202"
+  },
+  {
+    "BSVersion":"1.29.4",
+    "ManifestId":"6291266771922375922",
+    "ReleaseURL":"https://steamcommunity.com/ogg/620980/announcements/detail/3708194993422325380"
+  },
+  {
+    "BSVersion":"1.30.0",
+    "ManifestId":"7304715857122259127",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3725085394628677636"
+  },
+  {
+    "BSVersion":"1.30.2",
+    "ManifestId":"886973241045584398",
+    "ReleaseURL":"https://steamcommunity.com/ogg/620980/announcements/detail/3655280868312846230"
+  },
+  {
+    "BSVersion":"1.31.0",
+    "ManifestId":"676582354127623831",
+    "ReleaseURL":"https://steamcommunity.com/games/620980/announcements/detail/3674423070127121445"
   }
 ]
